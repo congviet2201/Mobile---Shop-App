@@ -40,17 +40,45 @@ export const getImageSource = (img?: string) => {
 
   const sampleImages: { [key: string]: string } = {
     'hinh1.jpg':
-      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600',
+      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600', // Tai nghe chụp tai
     'hinh2.jpg':
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600',
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600', // Đồng hồ thông minh Sport trắng
     'iphone15.jpg':
-      'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=600',
+      'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=600', // iPhone 15 Pro Max
     's24.jpg':
-      'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=600',
+      'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=600', // Samsung Galaxy S24 Ultra
     'macbook.jpg':
-      'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600',
+      'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600', // MacBook Air M3
     'ipad.jpg':
-      'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=600',
+      'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=600', // iPad Pro
+    'shirt.jpg':
+      'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600', // Áo sơ mi Oxford cao cấp
+    'jeans.jpg':
+      'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=600', // Quần Jeans Slimfit denim xanh cao cấp
+    'blazer.jpg':
+      'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=600', // Áo khoác Blazer nam
+    'sneaker.jpg':
+      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600', // Giày Sneaker Running
+    'xiaomi.jpg':
+      'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=600', // Xiaomi 14 Ultra Leica
+    'pixel.jpg':
+      'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600', // Google Pixel 8 Pro
+    'gaming_laptop.jpg':
+      'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600', // Laptop Gaming Asus ROG
+    'imac.jpg':
+      'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=600', // Máy tính iMac M3
+    'speaker.jpg':
+      'https://images.unsplash.com/photo-1545454675-3531b543be5d?w=600', // Loa Marshall Bluetooth
+    'keyboard.jpg':
+      'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600', // Bàn phím cơ không dây
+    'mouse.jpg':
+      'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=600', // Chuột Logitech MX Master
+    'garmin.jpg':
+      'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=600', // Đồng hồ thể thao Garmin
+    'tissot.jpg':
+      'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=600', // Đồng hồ cơ Tissot Thụy Sĩ
+    'apple_watch.jpg':
+      'https://images.unsplash.com/photo-1510017803434-a899398421b3?w=600', // Apple Watch Series 9
   };
 
   return {

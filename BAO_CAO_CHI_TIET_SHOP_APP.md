@@ -165,6 +165,25 @@
 
 ---
 
+### 2.6. Phân hệ Phân Trang (Pagination) & Bộ 20 Sản Phẩm Chuẩn Xác Hình Ảnh 100%
+- **Vị trí code:**
+  - Định nghĩa dữ liệu 20 sản phẩm mẫu chuẩn & cơ chế Migration: [`database.ts#L84-L245`](file:///d:/Mobile%202/Mobile/ShopApp/database.ts#L84-L245), [`database.ts#L377-L430`](file:///d:/Mobile%202/Mobile/ShopApp/database.ts#L377-L430)
+  - Ánh xạ 20 hình ảnh Unsplash chất lượng cao độc lập: [`ProductDetailScreen.tsx#L41-L85`](file:///d:/Mobile%202/Mobile/ShopApp/ProductDetailScreen.tsx#L41-L85)
+  - Thuật toán phân trang (10 SP/trang): [`Sanpham3Sqlite.tsx#L70-L75`](file:///d:/Mobile%202/Mobile/ShopApp/Sanpham3Sqlite.tsx#L70-L75), [`Sanpham3Sqlite.tsx#L330-L365`](file:///d:/Mobile%202/Mobile/ShopApp/Sanpham3Sqlite.tsx#L330-L365)
+  - Giao diện thanh điều hướng phân trang (Pagination Bar): [`Sanpham3Sqlite.tsx#L890-L980`](file:///d:/Mobile%202/Mobile/ShopApp/Sanpham3Sqlite.tsx#L890-L980)
+  - Styles phân trang: [`Sanpham3Sqlite.tsx#L1950-L2050`](file:///d:/Mobile%202/Mobile/ShopApp/Sanpham3Sqlite.tsx#L1950-L2050)
+- **Đặc điểm nổi bật:**
+  1. **Khắc phục triệt để lỗi ảnh không khớp:** Áo sơ mi nam Oxford hiển thị đúng 100% ảnh áo sơ mi gập thanh lịch; Quần Jeans nam Slimfit hiển thị đúng 100% ảnh quần jeans denim thời trang; Tai nghe Sony WH-1000XM5 hiển thị đúng tai nghe; Đồng hồ thông minh hiển thị đúng smartwatch.
+  2. **Bộ 20 sản phẩm độc lập:** Mỗi sản phẩm sở hữu 1 hình ảnh phân giải cao riêng biệt, không dùng chung hình, phân bổ đều trên 5 danh mục chính (Điện thoại, Máy tính, Phụ kiện, Thời trang, Đồng hồ).
+  3. **Phân trang chuyên nghiệp (10 sản phẩm/trang):**
+     - Trang 1 hiển thị 10 sản phẩm đầu tiên (1 - 10).
+     - Trang 2 hiển thị 10 sản phẩm tiếp theo (11 - 20).
+     - Nút `◀ Trước` (vô hiệu hóa ở trang 1), các nút số trang dạng viên thuốc `[ 1 ]`, `[ 2 ]` với hiệu ứng màu đỏ nổi bật cho trang đang chọn, nút `Sau ▶` (vô hiệu hóa ở trang cuối).
+     - Tự động cuộn mượt mà (`scrollToOffset`) lên đầu danh sách mỗi khi chuyển trang.
+     - Khi người dùng tìm kiếm hoặc lọc theo danh mục/giá, hệ thống tự động reset trang về 1.
+
+---
+
 ## 3. SƠ ĐỒ KIẾN TRÚC & LUỒNG DỮ LIỆU TỔNG THỂ
 
 ```mermaid

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Dimensions,
@@ -67,6 +67,11 @@ export default function Sanpham3Sqlite() {
   const [appliedCustomMin, setAppliedCustomMin] = useState<number | null>(null);
   const [appliedCustomMax, setAppliedCustomMax] = useState<number | null>(null);
 
+  // Pagination State (Yêu cầu: Phân trang, mỗi trang 10 sản phẩm)
+  const PAGE_SIZE = 10;
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const flatListRef = useRef<FlatList>(null);
+
   // Modal State for Add & Edit
   const [modalVisible, setModalVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -87,7 +92,7 @@ export default function Sanpham3Sqlite() {
     const user = await getCurrentUser();
 
     setCategories(cats);
-    setAllProducts([...prods].reverse());
+    setAllProducts([...prods]);
     setCurrentUser(user);
   };
 
@@ -305,22 +310,74 @@ export default function Sanpham3Sqlite() {
   }
 
   // Filtered & Sorted Products Calculation using centralized function
-  const filteredProducts = filterAndSortProducts(allProducts, categories, {
-    categoryId: selectedCategoryId,
+  const filteredProducts = useMemo(() => {
+    return filterAndSortProducts(allProducts, categories, {
+      categoryId: selectedCategoryId,
+      searchKeyword,
+      minPrice: activeMinPrice,
+      maxPrice: activeMaxPrice,
+      sortBy,
+    });
+  }, [
+    allProducts,
+    categories,
+    selectedCategoryId,
     searchKeyword,
-    minPrice: activeMinPrice,
-    maxPrice: activeMaxPrice,
+    activeMinPrice,
+    activeMaxPrice,
     sortBy,
-  });
+  ]);
 
-  // Sample Image Choices
+  const totalFilteredCount = filteredProducts.length;
+  const totalPages = Math.ceil(totalFilteredCount / PAGE_SIZE) || 1;
+
+  // Reset về trang 1 mỗi khi đổi bộ lọc hoặc từ khóa tìm kiếm
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    selectedCategoryId,
+    searchKeyword,
+    selectedPriceRangeId,
+    appliedCustomMin,
+    appliedCustomMax,
+    sortBy,
+  ]);
+
+  // Đảm bảo trang hiện tại không vượt quá tổng số trang
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  // Cắt danh sách sản phẩm theo trang hiện tại (10 sản phẩm/trang)
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return filteredProducts.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [filteredProducts, currentPage]);
+
+  // Sample Image Choices đầy đủ 20 loại
   const sampleImages = [
     { key: 'iphone15.jpg', label: 'iPhone' },
     { key: 's24.jpg', label: 'Galaxy' },
     { key: 'macbook.jpg', label: 'MacBook' },
     { key: 'ipad.jpg', label: 'iPad' },
-    { key: 'hinh1.jpg', label: 'Tai nghe' },
-    { key: 'hinh2.jpg', label: 'Đồng hồ' },
+    { key: 'hinh1.jpg', label: 'Tai nghe Sony' },
+    { key: 'hinh2.jpg', label: 'Smartwatch' },
+    { key: 'shirt.jpg', label: 'Áo sơ mi' },
+    { key: 'jeans.jpg', label: 'Quần jeans' },
+    { key: 'blazer.jpg', label: 'Áo blazer' },
+    { key: 'sneaker.jpg', label: 'Giày sneaker' },
+    { key: 'xiaomi.jpg', label: 'Xiaomi' },
+    { key: 'pixel.jpg', label: 'Pixel' },
+    { key: 'gaming_laptop.jpg', label: 'Laptop ROG' },
+    { key: 'imac.jpg', label: 'iMac' },
+    { key: 'speaker.jpg', label: 'Loa Marshall' },
+    { key: 'keyboard.jpg', label: 'Bàn phím cơ' },
+    { key: 'mouse.jpg', label: 'Chuột Logitech' },
+    { key: 'garmin.jpg', label: 'Garmin GPS' },
+    { key: 'tissot.jpg', label: 'Đồng hồ cơ' },
+    { key: 'apple_watch.jpg', label: 'Apple Watch' },
   ];
 
   // Helper get category name by ID
@@ -698,14 +755,19 @@ export default function Sanpham3Sqlite() {
 
       {/* Section Header: Product Count & Add Product Button (Requirement 2) */}
       <View style={styles.sectionHeaderRow}>
-        <View>
+        <View style={styles.sectionTitleContainer}>
           <Text style={styles.sectionTitle}>SẢN PHẨM</Text>
           <Text style={styles.productCountText}>
-            {filteredProducts.length} sản phẩm
+            {totalFilteredCount > 0
+              ? `Hiển thị ${(currentPage - 1) * PAGE_SIZE + 1} - ${Math.min(
+                  currentPage * PAGE_SIZE,
+                  totalFilteredCount,
+                )} / ${totalFilteredCount} SP (Trang ${currentPage}/${totalPages})`
+              : '0 sản phẩm'}
             {selectedCategoryId !== null
-              ? ` trong "${getCategoryName(selectedCategoryId)}"`
+              ? ` • ${getCategoryName(selectedCategoryId)}`
               : ''}
-            {selectedPriceRangeId !== 'all' ? ` (${getActivePriceLabel()})` : ''}
+            {selectedPriceRangeId !== 'all' ? ` • ${getActivePriceLabel()}` : ''}
           </Text>
         </View>
 
@@ -828,16 +890,127 @@ export default function Sanpham3Sqlite() {
     </View>
   );
 
+  // Render Pagination Controller (Yêu cầu: Phân trang, mỗi trang 10 sản phẩm)
+  const renderPagination = () => {
+    if (totalFilteredCount === 0) {
+      return null;
+    }
+
+    // Tạo mảng danh sách số trang [1, 2, ...]
+    const pageNumbers: number[] = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pageNumbers.push(i);
+    }
+
+    const goToPage = (page: number) => {
+      if (page < 1 || page > totalPages || page === currentPage) return;
+      setCurrentPage(page);
+      setTimeout(() => {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      }, 50);
+    };
+
+    return (
+      <View style={styles.paginationCard}>
+        <View style={styles.paginationInfoRow}>
+          <Text style={styles.paginationInfoText}>
+            Trang <Text style={styles.paginationBold}>{currentPage}</Text> / {totalPages}
+            {'  '}•{'  '}
+            Tổng số <Text style={styles.paginationBold}>{totalFilteredCount}</Text> sản phẩm
+          </Text>
+          <Text style={styles.paginationSubInfoText}>
+            (Hiển thị {paginatedProducts.length} sản phẩm trên trang này • Tối đa 10 SP/trang)
+          </Text>
+        </View>
+
+        <View style={styles.paginationControlsRow}>
+          {/* Nút Trang Trước */}
+          <TouchableOpacity
+            style={[
+              styles.pageNavBtn,
+              currentPage === 1 && styles.pageNavBtnDisabled,
+            ]}
+            onPress={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.pageNavBtnText,
+                currentPage === 1 && styles.pageNavBtnTextDisabled,
+              ]}
+            >
+              ◀ Trước
+            </Text>
+          </TouchableOpacity>
+
+          {/* Danh sách nút số trang [1], [2], ... */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.pageNumberScroll}
+          >
+            {pageNumbers.map((p) => {
+              const isActive = p === currentPage;
+              return (
+                <TouchableOpacity
+                  key={`page-btn-${p}`}
+                  style={[
+                    styles.pageNumberBtn,
+                    isActive && styles.pageNumberBtnActive,
+                  ]}
+                  onPress={() => goToPage(p)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.pageNumberText,
+                      isActive && styles.pageNumberTextActive,
+                    ]}
+                  >
+                    {p}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Nút Trang Sau */}
+          <TouchableOpacity
+            style={[
+              styles.pageNavBtn,
+              currentPage === totalPages && styles.pageNavBtnDisabled,
+            ]}
+            onPress={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.pageNavBtnText,
+                currentPage === totalPages && styles.pageNavBtnTextDisabled,
+              ]}
+            >
+              Sau ▶
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.screen}>
       <FlatList
-        data={filteredProducts}
+        ref={flatListRef}
+        data={paginatedProducts}
         keyExtractor={(item) => `product-${item.id}`}
         renderItem={renderProductCard}
         numColumns={2}
         key="product-grid-2col"
         columnWrapperStyle={styles.columnWrapper}
         ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderPagination}
         ListEmptyComponent={renderEmptyState}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
@@ -1420,6 +1593,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 10,
   },
+  sectionTitleContainer: {
+    flex: 1,
+    marginRight: 8,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '900',
@@ -1774,6 +1951,104 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  // Pagination Styles (Yêu cầu: Phân trang 10 sản phẩm/trang)
+  paginationCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 16,
+    marginBottom: 28,
+    marginHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    alignItems: 'center',
+  },
+  paginationInfoRow: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  paginationInfoText: {
+    fontSize: 13,
+    color: '#4a5568',
+    fontWeight: '500',
+  },
+  paginationBold: {
+    fontWeight: '700',
+    color: '#d32f2f',
+  },
+  paginationSubInfoText: {
+    fontSize: 11,
+    color: '#718096',
+    marginTop: 3,
+  },
+  paginationControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    gap: 8,
+  },
+  pageNavBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: '#f7fafc',
+    borderWidth: 1,
+    borderColor: '#cbd5e0',
+  },
+  pageNavBtnDisabled: {
+    opacity: 0.4,
+    backgroundColor: '#edf2f7',
+    borderColor: '#e2e8f0',
+  },
+  pageNavBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2d3748',
+  },
+  pageNavBtnTextDisabled: {
+    color: '#a0aec0',
+  },
+  pageNumberScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  pageNumberBtn: {
+    minWidth: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f7fafc',
+    borderWidth: 1,
+    borderColor: '#cbd5e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  pageNumberBtnActive: {
+    backgroundColor: '#d32f2f',
+    borderColor: '#d32f2f',
+    shadowColor: '#d32f2f',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  pageNumberText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4a5568',
+  },
+  pageNumberTextActive: {
+    color: '#ffffff',
+    fontWeight: 'bold',
   },
 });
 

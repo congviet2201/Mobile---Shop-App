@@ -80,7 +80,7 @@ const initialCategories: Category[] = [
   { id: 5, name: 'Đồng hồ', description: 'Đồng hồ thể thao, thông minh' },
 ];
 
-// Dữ liệu sản phẩm mẫu ban đầu
+// Dữ liệu sản phẩm mẫu ban đầu (20 sản phẩm đa dạng danh mục, hình ảnh độc lập 100%)
 const initialProducts: Product[] = [
   {
     id: 1,
@@ -116,35 +116,131 @@ const initialProducts: Product[] = [
   },
   {
     id: 5,
-    name: 'AirPods Pro 2 USB-C',
-    price: 5990000,
+    name: 'Tai nghe chụp tai Sony WH-1000XM5',
+    price: 7990000,
     img: 'hinh1.jpg',
     categoryId: 3,
-    description: 'Khử tiếng ồn chủ động gấp 2 lần, cổng sạc Type-C tiện lợi.',
+    description: 'Khử tiếng ồn đỉnh cao, âm thanh Hi-Res Audio chân thực, thời lượng pin 30 giờ.',
   },
   {
     id: 6,
-    name: 'Apple Watch Ultra 2',
-    price: 21490000,
+    name: 'Đồng hồ thông minh Smartwatch Sport',
+    price: 3490000,
     img: 'hinh2.jpg',
-    categoryId: 3,
-    description: 'Đồng hồ thông minh thể thao chuyên nghiệp với độ bền cao cấp.',
+    categoryId: 5,
+    description: 'Thiết kế thể thao năng động, màn hình cảm ứng sắc nét, đo nhịp tim và SpO2.',
   },
   {
     id: 7,
     name: 'Áo sơ mi nam Oxford cao cấp',
     price: 450000,
-    img: 'hinh1.jpg',
+    img: 'shirt.jpg',
     categoryId: 4,
-    description: 'Chất vải cotton thoáng mát, đường may tỉ mỉ, tôn dáng thanh lịch.',
+    description: 'Chất vải cotton thoáng mát, đường may tỉ mỉ, tôn dáng công sở thanh lịch.',
   },
   {
     id: 8,
     name: 'Quần Jeans nam Slimfit',
     price: 650000,
-    img: 'hinh2.jpg',
+    img: 'jeans.jpg',
     categoryId: 4,
-    description: 'Kiểu dáng thời trang trẻ trung, chất liệu co giãn thoải mái.',
+    description: 'Kiểu dáng thời trang trẻ trung tôn dáng, chất liệu denim co giãn thoải mái.',
+  },
+  {
+    id: 9,
+    name: 'Áo khoác Blazer nam thời thượng',
+    price: 890000,
+    img: 'blazer.jpg',
+    categoryId: 4,
+    description: 'Phong cách Hàn Quốc lịch lãm, chất vải đứng form, phù hợp đi tiệc và công sở.',
+  },
+  {
+    id: 10,
+    name: 'Giày thể thao Sneaker Running Pro',
+    price: 1250000,
+    img: 'sneaker.jpg',
+    categoryId: 4,
+    description: 'Đế đệm khí êm ái trợ lực, vải lưới thoáng khí, phong cách thể thao năng động.',
+  },
+  {
+    id: 11,
+    name: 'Xiaomi 14 Ultra Leica Pro',
+    price: 24990000,
+    img: 'xiaomi.jpg',
+    categoryId: 1,
+    description: 'Hệ thống 4 camera Leica 50MP đỉnh cao, chip Snapdragon 8 Gen 3 cực mạnh.',
+  },
+  {
+    id: 12,
+    name: 'Google Pixel 8 Pro 128GB',
+    price: 19490000,
+    img: 'pixel.jpg',
+    categoryId: 1,
+    description: 'Nhiếp ảnh thuật toán AI thông minh độc quyền từ Google với chip Tensor G3.',
+  },
+  {
+    id: 13,
+    name: 'Laptop Gaming Asus ROG Zephyrus',
+    price: 38990000,
+    img: 'gaming_laptop.jpg',
+    categoryId: 2,
+    description: 'Card đồ họa RTX 4070 mạnh mẽ, màn hình ROG Nebula 165Hz chuẩn màu đồ họa.',
+  },
+  {
+    id: 14,
+    name: 'Máy tính All-in-One iMac M3 24"',
+    price: 32500000,
+    img: 'imac.jpg',
+    categoryId: 2,
+    description: 'Thiết kế siêu mỏng rực rỡ sắc màu, màn hình Retina 4.5K sống động tuyệt mỹ.',
+  },
+  {
+    id: 15,
+    name: 'Loa Bluetooth Marshall Stanmore III',
+    price: 8990000,
+    img: 'speaker.jpg',
+    categoryId: 3,
+    description: 'Âm trường rộng mở đặc trưng Marshall, kết nối Bluetooth 5.2 và jack AUX.',
+  },
+  {
+    id: 16,
+    name: 'Bàn phím cơ không dây Keychron K2',
+    price: 2150000,
+    img: 'keyboard.jpg',
+    categoryId: 3,
+    description: 'Hỗ trợ kết nối Mac & Windows qua Bluetooth, switch cơ học gõ êm mượt mà.',
+  },
+  {
+    id: 17,
+    name: 'Chuột không dây Logitech MX Master 3S',
+    price: 2290000,
+    img: 'mouse.jpg',
+    categoryId: 3,
+    description: 'Cảm biến 8000 DPI lướt mượt trên mọi bề mặt, nút cuộn từ tính MagSpeed siêu tốc.',
+  },
+  {
+    id: 18,
+    name: 'Đồng hồ thể thao Garmin Forerunner',
+    price: 12490000,
+    img: 'garmin.jpg',
+    categoryId: 5,
+    description: 'Định vị GPS đa băng tần chính xác, thời lượng pin 14 ngày, chuyên sâu chạy bộ.',
+  },
+  {
+    id: 19,
+    name: 'Đồng hồ cơ nam Tissot Thụy Sĩ',
+    price: 14200000,
+    img: 'tissot.jpg',
+    categoryId: 5,
+    description: 'Bộ máy tự động Thụy Sĩ cao cấp trữ cót 80 giờ, mặt kính Sapphire chống trầy.',
+  },
+  {
+    id: 20,
+    name: 'Apple Watch Series 9 GPS',
+    price: 10990000,
+    img: 'apple_watch.jpg',
+    categoryId: 5,
+    description: 'Tính năng Double Tap thần kỳ, màn hình sáng gấp đôi, theo dõi sức khỏe toàn diện.',
   },
 ];
 
@@ -185,7 +281,7 @@ let ordersStore: Order[] = [];
 let orderDetailsStore: OrderDetail[] = [];
 
 let nextCategoryId = 6;
-let nextProductId = 9;
+let nextProductId = 21;
 let nextUserId = 3;
 let nextCartId = 1;
 let nextOrderId = 1;
@@ -278,13 +374,52 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
       await persistCategories();
     }
 
-    // 2. Nạp Sản phẩm
+    // 2. Nạp Sản phẩm (Tự động di chuyển & nâng cấp lên 20 sản phẩm chuẩn ảnh)
     const rawProducts = await AsyncStorage.getItem(STORAGE_KEYS.PRODUCTS);
     if (rawProducts) {
-      const parsed = JSON.parse(rawProducts);
+      const parsed: Product[] = JSON.parse(rawProducts);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        productsStore = parsed;
-        const maxId = Math.max(...productsStore.map((p) => p.id || 0), 8);
+        // Kiểm tra xem có cần cập nhật dữ liệu hình ảnh chính xác & bổ sung 20 sản phẩm không
+        const needsUpdate =
+          parsed.length < 20 ||
+          parsed.some(
+            (p) =>
+              (p.id === 7 && p.img === 'hinh1.jpg') ||
+              (p.id === 8 && p.img === 'hinh2.jpg') ||
+              (p.id === 5 && p.name.includes('AirPods')) ||
+              (p.id === 6 && p.name.includes('Apple Watch Ultra')),
+          );
+
+        if (needsUpdate) {
+          const existingMap = new Map(parsed.map((p) => [p.id, p]));
+          const updatedList: Product[] = initialProducts.map((initP) => {
+            const existing = existingMap.get(initP.id);
+            if (existing) {
+              // Cập nhật tên, ảnh, danh mục và mô tả chuẩn
+              return {
+                ...existing,
+                name: initP.name,
+                img: initP.img,
+                categoryId: initP.categoryId,
+                description: initP.description || existing.description,
+              };
+            }
+            return initP;
+          });
+
+          // Giữ lại các sản phẩm do người dùng tự tạo thêm (id > 20)
+          parsed.forEach((p) => {
+            if (!updatedList.some((u) => u.id === p.id)) {
+              updatedList.push(p);
+            }
+          });
+
+          productsStore = updatedList;
+          await persistProducts();
+        } else {
+          productsStore = parsed;
+        }
+        const maxId = Math.max(...productsStore.map((p) => p.id || 0), 20);
         nextProductId = maxId + 1;
       } else {
         productsStore = [...initialProducts];
