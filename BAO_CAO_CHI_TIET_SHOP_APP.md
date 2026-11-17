@@ -173,8 +173,12 @@
   - Giao diện thanh điều hướng phân trang (Pagination Bar): [`Sanpham3Sqlite.tsx#L890-L980`](file:///d:/Mobile%202/Mobile/ShopApp/Sanpham3Sqlite.tsx#L890-L980)
   - Styles phân trang: [`Sanpham3Sqlite.tsx#L1950-L2050`](file:///d:/Mobile%202/Mobile/ShopApp/Sanpham3Sqlite.tsx#L1950-L2050)
 - **Đặc điểm nổi bật:**
-  1. **Khắc phục triệt để lỗi ảnh không khớp:** Áo sơ mi nam Oxford hiển thị đúng 100% ảnh áo sơ mi gập thanh lịch; Quần Jeans nam Slimfit hiển thị đúng 100% ảnh quần jeans denim thời trang; Tai nghe Sony WH-1000XM5 hiển thị đúng tai nghe; Đồng hồ thông minh hiển thị đúng smartwatch.
-  2. **Bộ 20 sản phẩm độc lập:** Mỗi sản phẩm sở hữu 1 hình ảnh phân giải cao riêng biệt, không dùng chung hình, phân bổ đều trên 5 danh mục chính (Điện thoại, Máy tính, Phụ kiện, Thời trang, Đồng hồ).
+  1. **Hệ thống 100% sản phẩm công nghệ cao cấp:** Toàn bộ các mặt hàng quần áo thời trang trước đây đã được thay thế thành các thiết bị công nghệ hiện đại hàng đầu:
+     - *Tay cầm chơi game Sony PS5 DualSense* (1.890.000 đ) - Rung phản hồi xúc giác Haptic Feedback và Adaptive Triggers.
+     - *Máy chơi game Nintendo Switch OLED* (7.490.000 đ) - Màn hình OLED 7-inch chơi game đa năng.
+     - *Kính thực tế ảo Meta Quest 3 VR* (13.990.000 đ) - Thực tế ảo hỗn hợp Snapdragon XR2 Gen 2.
+     - *Flycam DJI Mini 4 Pro Combo* (21.690.000 đ) - Camera 4K/60fps HDR, cảm biến đa hướng, bay xa 20km.
+  2. **Bộ 20 sản phẩm độc lập:** Mỗi sản phẩm sở hữu 1 hình ảnh phân giải cao riêng biệt, không dùng chung hình, phân bổ đều trên 5 danh mục công nghệ: Điện thoại (4), Máy tính (4), Phụ kiện (4), Thiết bị thông minh (4), Đồng hồ (4).
   3. **Phân trang chuyên nghiệp (10 sản phẩm/trang):**
      - Trang 1 hiển thị 10 sản phẩm đầu tiên (1 - 10).
      - Trang 2 hiển thị 10 sản phẩm tiếp theo (11 - 20).

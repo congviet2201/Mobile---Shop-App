@@ -76,11 +76,15 @@ const initialCategories: Category[] = [
   { id: 1, name: 'Điện thoại', description: 'Các dòng smartphone cao cấp' },
   { id: 2, name: 'Máy tính', description: 'Laptop, máy tính bảng công nghệ mới' },
   { id: 3, name: 'Phụ kiện', description: 'Tai nghe, đồng hồ, cáp sạc' },
-  { id: 4, name: 'Thời trang', description: 'Quần áo thời trang nam nữ' },
+  {
+    id: 4,
+    name: 'Thiết bị thông minh',
+    description: 'Tay cầm chơi game, kính VR, flycam và thiết bị thông minh',
+  },
   { id: 5, name: 'Đồng hồ', description: 'Đồng hồ thể thao, thông minh' },
 ];
 
-// Dữ liệu sản phẩm mẫu ban đầu (20 sản phẩm đa dạng danh mục, hình ảnh độc lập 100%)
+// Dữ liệu sản phẩm mẫu ban đầu (20 sản phẩm 100% công nghệ cao cấp, hình ảnh độc lập)
 const initialProducts: Product[] = [
   {
     id: 1,
@@ -132,35 +136,35 @@ const initialProducts: Product[] = [
   },
   {
     id: 7,
-    name: 'Áo sơ mi nam Oxford cao cấp',
-    price: 450000,
-    img: 'shirt.jpg',
+    name: 'Tay cầm chơi game Sony PS5 DualSense',
+    price: 1890000,
+    img: 'ps5_controller.jpg',
     categoryId: 4,
-    description: 'Chất vải cotton thoáng mát, đường may tỉ mỉ, tôn dáng công sở thanh lịch.',
+    description: 'Cảm ứng lực Haptic Feedback sống động, cò thích ứng Adaptive Triggers và micro tích hợp.',
   },
   {
     id: 8,
-    name: 'Quần Jeans nam Slimfit',
-    price: 650000,
-    img: 'jeans.jpg',
+    name: 'Máy chơi game Nintendo Switch OLED',
+    price: 7490000,
+    img: 'switch.jpg',
     categoryId: 4,
-    description: 'Kiểu dáng thời trang trẻ trung tôn dáng, chất liệu denim co giãn thoải mái.',
+    description: 'Màn hình OLED 7-inch rực rỡ sắc nét, tận hưởng các tựa game đỉnh cao mọi lúc mọi nơi.',
   },
   {
     id: 9,
-    name: 'Áo khoác Blazer nam thời thượng',
-    price: 890000,
-    img: 'blazer.jpg',
+    name: 'Kính thực tế ảo Meta Quest 3 VR',
+    price: 13990000,
+    img: 'vr_headset.jpg',
     categoryId: 4,
-    description: 'Phong cách Hàn Quốc lịch lãm, chất vải đứng form, phù hợp đi tiệc và công sở.',
+    description: 'Đắm chìm vào không gian thực tế ảo hỗn hợp đỉnh cao, chip Snapdragon XR2 Gen 2 mượt mà.',
   },
   {
     id: 10,
-    name: 'Giày thể thao Sneaker Running Pro',
-    price: 1250000,
-    img: 'sneaker.jpg',
+    name: 'Flycam DJI Mini 4 Pro Combo',
+    price: 21690000,
+    img: 'flycam.jpg',
     categoryId: 4,
-    description: 'Đế đệm khí êm ái trợ lực, vải lưới thoáng khí, phong cách thể thao năng động.',
+    description: 'Quay video 4K/60fps HDR đỉnh cao, cảm biến vật cản đa hướng an toàn, truyền sóng xa 20km.',
   },
   {
     id: 11,
@@ -357,12 +361,26 @@ const persistOrders = async () => {
  */
 export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
   try {
-    // 1. Nạp Danh mục
+    // 1. Nạp Danh mục (Tự động chuyển đổi danh mục Thời trang thành Thiết bị thông minh)
     const rawCategories = await AsyncStorage.getItem(STORAGE_KEYS.CATEGORIES);
     if (rawCategories) {
-      const parsedCats = JSON.parse(rawCategories);
+      const parsedCats: Category[] = JSON.parse(rawCategories);
       if (Array.isArray(parsedCats) && parsedCats.length > 0) {
-        categoriesStore = parsedCats;
+        categoriesStore = parsedCats.map((c) => {
+          if (
+            c.id === 4 &&
+            (c.name === 'Thời trang' || (c.description || '').includes('Quần áo'))
+          ) {
+            return {
+              id: 4,
+              name: 'Thiết bị thông minh',
+              description:
+                'Tay cầm chơi game, kính VR, flycam và thiết bị thông minh',
+            };
+          }
+          return c;
+        });
+        await persistCategories();
         const maxCatId = Math.max(...categoriesStore.map((c) => c.id || 0), 5);
         nextCategoryId = maxCatId + 1;
       } else {
@@ -374,20 +392,24 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
       await persistCategories();
     }
 
-    // 2. Nạp Sản phẩm (Tự động di chuyển & nâng cấp lên 20 sản phẩm chuẩn ảnh)
+    // 2. Nạp Sản phẩm (Tự động di chuyển & nâng cấp lên 20 sản phẩm công nghệ cao cấp)
     const rawProducts = await AsyncStorage.getItem(STORAGE_KEYS.PRODUCTS);
     if (rawProducts) {
       const parsed: Product[] = JSON.parse(rawProducts);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Kiểm tra xem có cần cập nhật dữ liệu hình ảnh chính xác & bổ sung 20 sản phẩm không
+        // Kiểm tra xem có sản phẩm quần áo cần thay thế thành thiết bị công nghệ không
         const needsUpdate =
           parsed.length < 20 ||
           parsed.some(
             (p) =>
-              (p.id === 7 && p.img === 'hinh1.jpg') ||
-              (p.id === 8 && p.img === 'hinh2.jpg') ||
-              (p.id === 5 && p.name.includes('AirPods')) ||
-              (p.id === 6 && p.name.includes('Apple Watch Ultra')),
+              p.img === 'shirt.jpg' ||
+              p.img === 'jeans.jpg' ||
+              p.img === 'blazer.jpg' ||
+              p.img === 'sneaker.jpg' ||
+              p.img === 'hinh1.jpg' ||
+              p.name.includes('Áo') ||
+              p.name.includes('Quần') ||
+              p.name.includes('Giày'),
           );
 
         if (needsUpdate) {
@@ -395,7 +417,19 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
           const updatedList: Product[] = initialProducts.map((initP) => {
             const existing = existingMap.get(initP.id);
             if (existing) {
-              // Cập nhật tên, ảnh, danh mục và mô tả chuẩn
+              // Cập nhật sản phẩm 7-10 (từ quần áo sang đồ công nghệ) hoặc các sản phẩm có ảnh cũ
+              if (
+                initP.id >= 7 && initP.id <= 10
+              ) {
+                return {
+                  ...existing,
+                  name: initP.name,
+                  price: initP.price,
+                  img: initP.img,
+                  categoryId: initP.categoryId,
+                  description: initP.description || existing.description,
+                };
+              }
               return {
                 ...existing,
                 name: initP.name,

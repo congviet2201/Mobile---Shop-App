@@ -59,6 +59,14 @@ export const getImageSource = (img?: string) => {
       'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=600', // Áo khoác Blazer nam
     'sneaker.jpg':
       'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600', // Giày Sneaker Running
+    'ps5_controller.jpg':
+      'https://images.unsplash.com/photo-1606318801954-d46d46d3360a?w=600', // Tay cầm chơi game PS5 DualSense
+    'switch.jpg':
+      'https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?w=600', // Máy chơi game Nintendo Switch OLED
+    'vr_headset.jpg':
+      'https://images.unsplash.com/photo-1593508512255-86ab42a8e620?w=600', // Kính thực tế ảo Meta Quest 3 VR
+    'flycam.jpg':
+      'https://images.unsplash.com/photo-1527977966376-1c8408f9f108?w=600', // Flycam DJI Mini 4 Pro Combo
     'xiaomi.jpg':
       'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=600', // Xiaomi 14 Ultra Leica
     'pixel.jpg':
