@@ -150,6 +150,9 @@ export default function OrderHistoryScreen() {
                   <Text style={styles.recipientLine} numberOfLines={2}>
                     📍 Địa chỉ: {item.address}
                   </Text>
+                  <Text style={styles.recipientLine}>
+                    💳 Thanh toán: <Text style={styles.boldText}>{item.paymentMethod || 'Thanh toán khi nhận hàng (COD)'}</Text>
+                  </Text>
                 </View>
 
                 {/* Items Summary */}

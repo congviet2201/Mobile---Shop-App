@@ -19,6 +19,10 @@ import {
 } from './database';
 import { getImageSource } from './ProductDetailScreen';
 
+type PaymentMethodType = 'COD' | 'SAC_BANK' | 'MOMO';
+
+const momoQrImage = require('./assets/momo_qr.jpg');
+
 export default function CheckoutScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -36,6 +40,7 @@ export default function CheckoutScreen() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [note, setNote] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('COD');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -98,12 +103,20 @@ export default function CheckoutScreen() {
 
     setIsSubmitting(true);
     try {
+      const paymentMethodLabel =
+        paymentMethod === 'SAC_BANK'
+          ? 'Chuyển khoản Sacombank (040933145794 - Đoàn Công Việt)'
+          : paymentMethod === 'MOMO'
+          ? 'Ví MoMo (0792455240 - Đoàn Công Việt)'
+          : 'Thanh toán khi nhận hàng (COD)';
+
       const orderPayload = {
         userId: currentUser.id,
         customerName: customerName.trim(),
         phone: phone.trim(),
         address: address.trim(),
         note: note.trim(),
+        paymentMethod: paymentMethodLabel,
         items: cartItems.map((item) => ({
           productId: item.productId,
           productName: item.product.name,
@@ -116,9 +129,14 @@ export default function CheckoutScreen() {
       const newOrder = await createOrder(orderPayload);
       setIsSubmitting(false);
 
+      const successMsg =
+        paymentMethod === 'COD'
+          ? `Cảm ơn bạn! Đơn hàng #${newOrder.id} đã được tiếp nhận.\nHình thức: COD (Thanh toán tiền mặt khi nhận hàng).\nTổng thanh toán: ${newOrder.totalAmount.toLocaleString('vi-VN')} đ`
+          : `Cảm ơn bạn! Đơn hàng #${newOrder.id} đã được tiếp nhận.\nHình thức: ${paymentMethodLabel}.\nTổng tiền: ${newOrder.totalAmount.toLocaleString('vi-VN')} đ\n\n📌 Vui lòng hoàn tất chuyển khoản đến ${paymentMethod === 'SAC_BANK' ? 'STK 040933145794 (Sacombank)' : 'SĐT 0792455240 (MoMo)'} - Đoàn Công Việt để đơn hàng được gửi sớm nhất!`;
+
       Alert.alert(
         '🎉 Đặt hàng thành công!',
-        `Cảm ơn bạn! Đơn hàng #${newOrder.id} đã được tiếp nhận và đang được xử lý.\nTổng thanh toán: ${newOrder.totalAmount.toLocaleString('vi-VN')} đ`,
+        successMsg,
         [
           {
             text: 'Xem đơn hàng',
@@ -212,17 +230,157 @@ export default function CheckoutScreen() {
       {/* 3. Payment Method Card */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>💳 Hình thức thanh toán</Text>
-        <View style={styles.paymentMethod}>
-          <Text style={styles.paymentRadio}>🔘</Text>
+
+        {/* Option 1: COD */}
+        <TouchableOpacity
+          style={[
+            styles.paymentOption,
+            paymentMethod === 'COD' && styles.paymentOptionActive,
+          ]}
+          onPress={() => setPaymentMethod('COD')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.paymentRadio}>
+            {paymentMethod === 'COD' ? '🔘' : '⚪'}
+          </Text>
           <View style={styles.paymentInfo}>
             <Text style={styles.paymentName}>
-              Thanh toán khi nhận hàng (COD)
+              💵 Thanh toán khi nhận hàng (COD)
             </Text>
             <Text style={styles.paymentDesc}>
-              Thanh toán tiền mặt trực tiếp cho nhân viên giao hàng
+              Thanh toán tiền mặt trực tiếp cho shipper khi nhận kiện hàng
             </Text>
           </View>
-        </View>
+        </TouchableOpacity>
+
+        {/* Option 2: Sacombank */}
+        <TouchableOpacity
+          style={[
+            styles.paymentOption,
+            paymentMethod === 'SAC_BANK' && styles.paymentOptionActive,
+          ]}
+          onPress={() => setPaymentMethod('SAC_BANK')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.paymentRadio}>
+            {paymentMethod === 'SAC_BANK' ? '🔘' : '⚪'}
+          </Text>
+          <View style={styles.paymentInfo}>
+            <Text style={styles.paymentName}>
+              🏦 Chuyển khoản Ngân hàng (Sacombank)
+            </Text>
+            <Text style={styles.paymentDesc}>
+              STK: 040933145794 - Đoàn Công Việt
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Option 3: MoMo */}
+        <TouchableOpacity
+          style={[
+            styles.paymentOption,
+            paymentMethod === 'MOMO' && styles.paymentOptionActive,
+          ]}
+          onPress={() => setPaymentMethod('MOMO')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.paymentRadio}>
+            {paymentMethod === 'MOMO' ? '🔘' : '⚪'}
+          </Text>
+          <View style={styles.paymentInfo}>
+            <Text style={styles.paymentName}>
+              📱 Chuyển tiền qua Ví MoMo
+            </Text>
+            <Text style={styles.paymentDesc}>
+              Ví MoMo: 0792455240 - Đoàn Công Việt
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Sacombank Details Box */}
+        {paymentMethod === 'SAC_BANK' && (
+          <View style={styles.bankDetailCard}>
+            <Text style={styles.bankTitle}>
+              🏦 THÔNG TIN TÀI KHOẢN SACOMBANK
+            </Text>
+            <View style={styles.bankInfoRow}>
+              <Text style={styles.bankInfoLabel}>Ngân hàng:</Text>
+              <Text style={styles.bankInfoValueBold}>Sacombank (CN TP.HCM)</Text>
+            </View>
+            <View style={styles.bankInfoRow}>
+              <Text style={styles.bankInfoLabel}>Số tài khoản:</Text>
+              <Text style={styles.bankAccountHighlight}>040933145794</Text>
+            </View>
+            <View style={styles.bankInfoRow}>
+              <Text style={styles.bankInfoLabel}>Chủ tài khoản:</Text>
+              <Text style={styles.bankInfoValueBold}>ĐOÀN CÔNG VIỆT</Text>
+            </View>
+            <View style={styles.bankInfoRow}>
+              <Text style={styles.bankInfoLabel}>Số tiền cần chuyển:</Text>
+              <Text style={styles.bankAmountHighlight}>
+                {totalAmount.toLocaleString('vi-VN')} đ
+              </Text>
+            </View>
+            <View style={styles.bankInfoRow}>
+              <Text style={styles.bankInfoLabel}>Nội dung CK:</Text>
+              <Text style={styles.bankTransferSyntax}>
+                SHOPAPP {phone.trim() || 'SDT'}
+              </Text>
+            </View>
+            <Text style={styles.bankNoteText}>
+              💡 Sau khi đặt hàng, bạn hãy chuyển khoản đúng số tài khoản trên để đơn hàng được xác nhận và giao sớm nhất!
+            </Text>
+          </View>
+        )}
+
+        {/* MoMo Details Box */}
+        {paymentMethod === 'MOMO' && (
+          <View style={styles.momoDetailCard}>
+            <Text style={styles.momoTitle}>
+              📱 THÔNG TIN THANH TOÁN VÍ MOMO
+            </Text>
+
+            {/* QR Code MoMo */}
+            <View style={styles.qrContainer}>
+              <Image
+                source={momoQrImage}
+                style={styles.qrImage}
+                resizeMode="contain"
+              />
+              <Text style={styles.qrHint}>
+                ⚡ Quét mã QR bằng ứng dụng MoMo để thanh toán nhanh
+              </Text>
+            </View>
+
+            <View style={styles.bankInfoRow}>
+              <Text style={styles.bankInfoLabel}>Cổng thanh toán:</Text>
+              <Text style={styles.bankInfoValueBold}>Ví điện tử MoMo (24/7)</Text>
+            </View>
+            <View style={styles.bankInfoRow}>
+              <Text style={styles.bankInfoLabel}>Số điện thoại ví:</Text>
+              <Text style={styles.momoPhoneHighlight}>0792455240</Text>
+            </View>
+            <View style={styles.bankInfoRow}>
+              <Text style={styles.bankInfoLabel}>Chủ tài khoản:</Text>
+              <Text style={styles.bankInfoValueBold}>ĐOÀN CÔNG VIỆT</Text>
+            </View>
+            <View style={styles.bankInfoRow}>
+              <Text style={styles.bankInfoLabel}>Số tiền cần chuyển:</Text>
+              <Text style={styles.bankAmountHighlight}>
+                {totalAmount.toLocaleString('vi-VN')} đ
+              </Text>
+            </View>
+            <View style={styles.bankInfoRow}>
+              <Text style={styles.bankInfoLabel}>Lời nhắn MoMo:</Text>
+              <Text style={styles.bankTransferSyntax}>
+                SHOPAPP {phone.trim() || 'SDT'}
+              </Text>
+            </View>
+            <Text style={styles.bankNoteText}>
+              💡 Sau khi đặt hàng, bạn hãy mở app MoMo quét mã QR trên hoặc chuyển tiền đến số điện thoại 0792455240 kèm lời nhắn để hệ thống ghi nhận ngay!
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* 4. Order Summary Card */}
@@ -347,6 +505,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
+  paymentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    marginBottom: 10,
+  },
+  paymentOptionActive: {
+    borderColor: '#d32f2f',
+    backgroundColor: '#fff5f5',
+  },
   paymentRadio: {
     fontSize: 18,
     marginRight: 10,
@@ -363,6 +535,84 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#718096',
     marginTop: 2,
+  },
+  bankDetailCard: {
+    backgroundColor: '#0a3d62',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 6,
+    marginBottom: 6,
+    borderWidth: 1.5,
+    borderColor: '#ffdd59',
+  },
+  bankTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#ffdd59',
+    marginBottom: 10,
+    letterSpacing: 0.5,
+  },
+  momoDetailCard: {
+    backgroundColor: '#a21b65',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 6,
+    marginBottom: 6,
+    borderWidth: 1.5,
+    borderColor: '#ffc1e3',
+  },
+  momoTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 10,
+    letterSpacing: 0.5,
+  },
+  bankInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.12)',
+  },
+  bankInfoLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  bankInfoValueBold: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  bankAccountHighlight: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#ffdd59',
+    letterSpacing: 1,
+  },
+  momoPhoneHighlight: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: 1,
+  },
+  bankAmountHighlight: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  bankTransferSyntax: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#ffdd59',
+  },
+  bankNoteText: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.75)',
+    fontStyle: 'italic',
+    marginTop: 10,
+    lineHeight: 16,
   },
   summaryLine: {
     flexDirection: 'row',
@@ -414,5 +664,23 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: 'bold',
+  },
+  qrContainer: {
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 12,
+  },
+  qrImage: {
+    width: 220,
+    height: 250,
+  },
+  qrHint: {
+    fontSize: 11,
+    color: '#a21b65',
+    fontWeight: 'bold',
+    marginTop: 6,
+    textAlign: 'center',
   },
 });

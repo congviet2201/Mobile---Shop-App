@@ -1040,6 +1040,9 @@ export default function AdminDashboard() {
                       <Text style={styles.customerAddressText}>
                         📍 {item.address}
                       </Text>
+                      <Text style={styles.customerPaymentText}>
+                        💳 Thanh toán: {item.paymentMethod || 'Thanh toán khi nhận hàng (COD)'}
+                      </Text>
                       {item.note ? (
                         <Text style={styles.customerNoteText}>
                           📝 Ghi chú: {item.note}
@@ -2197,6 +2200,12 @@ const styles = StyleSheet.create({
   customerAddressText: {
     fontSize: 12,
     color: '#57606f',
+    marginTop: 2,
+  },
+  customerPaymentText: {
+    fontSize: 12,
+    color: '#0984e3',
+    fontWeight: '600',
     marginTop: 2,
   },
   customerNoteText: {

@@ -53,6 +53,7 @@ export interface Order {
   phone: string;
   address: string;
   note?: string;
+  paymentMethod?: string;
   totalAmount: number;
   status: 'Đang xử lý' | 'Đang giao' | 'Hoàn thành' | 'Đã hủy';
   createdAt: string;
@@ -863,6 +864,7 @@ export const createOrder = async (orderData: {
   phone: string;
   address: string;
   note?: string;
+  paymentMethod?: string;
   items: {
     productId: number;
     productName: string;
@@ -901,6 +903,7 @@ export const createOrder = async (orderData: {
     phone: orderData.phone.trim(),
     address: orderData.address.trim(),
     note: orderData.note?.trim() || '',
+    paymentMethod: orderData.paymentMethod || 'Thanh toán khi nhận hàng (COD)',
     totalAmount,
     status: 'Đang xử lý',
     createdAt: new Date().toISOString(),
