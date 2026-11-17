@@ -41,7 +41,7 @@ import { getImageSource } from './ProductDetailScreen';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-type AdminTab = 'users' | 'categories' | 'products' | 'orders';
+type AdminTab = 'users' | 'categories' | 'products' | 'orders' | 'statistics';
 
 export default function AdminDashboard() {
   const navigation = useNavigation<any>();
@@ -75,6 +75,84 @@ export default function AdminDashboard() {
   const [orderFilter, setOrderFilter] = useState<'Tất cả' | Order['status']>('Tất cả');
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [selectedOrderForStatus, setSelectedOrderForStatus] = useState<Order | null>(null);
+
+  // ==========================================
+  // THỐNG KÊ DOANH THU & ĐƠN HÀNG (STATISTICS)
+  // ==========================================
+  const totalOrdersCount = orders.length;
+  const completedOrdersList = useMemo(
+    () => orders.filter((o) => o.status === 'Hoàn thành'),
+    [orders],
+  );
+  const cancelledOrdersList = useMemo(
+    () => orders.filter((o) => o.status === 'Đã hủy'),
+    [orders],
+  );
+  const shippingOrdersList = useMemo(
+    () => orders.filter((o) => o.status === 'Đang giao'),
+    [orders],
+  );
+  const processingOrdersList = useMemo(
+    () => orders.filter((o) => o.status === 'Đang xử lý'),
+    [orders],
+  );
+
+  // 1. Tổng doanh thu thực tế (Từ đơn hàng ĐÃ HOÀN THÀNH)
+  const totalCompletedRevenue = useMemo(
+    () => completedOrdersList.reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+    [completedOrdersList],
+  );
+
+  // 2. Giá trị đơn hàng dự kiến thu (Đang xử lý + Đang giao)
+  const pendingRevenue = useMemo(
+    () =>
+      [...processingOrdersList, ...shippingOrdersList].reduce(
+        (sum, o) => sum + (o.totalAmount || 0),
+        0,
+      ),
+    [processingOrdersList, shippingOrdersList],
+  );
+
+  // 3. Giá trị đơn hàng đã hủy
+  const cancelledRevenue = useMemo(
+    () => cancelledOrdersList.reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+    [cancelledOrdersList],
+  );
+
+  // 4. Tỷ lệ %
+  const completedPercent =
+    totalOrdersCount > 0
+      ? Math.round((completedOrdersList.length / totalOrdersCount) * 100)
+      : 0;
+  const cancelledPercent =
+    totalOrdersCount > 0
+      ? Math.round((cancelledOrdersList.length / totalOrdersCount) * 100)
+      : 0;
+  const processingPercent =
+    totalOrdersCount > 0
+      ? Math.round((processingOrdersList.length / totalOrdersCount) * 100)
+      : 0;
+  const shippingPercent =
+    totalOrdersCount > 0
+      ? Math.round((shippingOrdersList.length / totalOrdersCount) * 100)
+      : 0;
+
+  // 5. Giá trị trung bình đơn hàng hoàn tất (AOV)
+  const avgOrderValue =
+    completedOrdersList.length > 0
+      ? Math.round(totalCompletedRevenue / completedOrdersList.length)
+      : 0;
+
+  // 6. Tổng số sản phẩm đã bán trong các đơn hoàn tất
+  const totalProductsSold = useMemo(() => {
+    return completedOrdersList.reduce((sum, o) => {
+      const itemsCount = (o.items || []).reduce(
+        (iSum, item) => iSum + (item.quantity || 1),
+        0,
+      );
+      return sum + itemsCount;
+    }, 0);
+  }, [completedOrdersList]);
 
   const loadData = useCallback(async () => {
     try {
@@ -376,6 +454,12 @@ export default function AdminDashboard() {
     );
   };
 
+  const getSegmentStyle = (percent: number, bgStyle: any) => [
+    styles.progressBarSegment,
+    bgStyle,
+    { width: `${percent}%` as const },
+  ];
+
   const getCategoryName = (catId: number) => {
     const c = categories.find((cat) => cat.id === catId);
     return c ? c.name : 'Chưa phân loại';
@@ -404,6 +488,30 @@ export default function AdminDashboard() {
     orderId: number,
     newStatus: Order['status'],
   ) => {
+    const targetOrder = orders.find((o) => o.id === orderId);
+    if (!targetOrder) return;
+
+    // RÀNG BUỘC LOGIC: Không cho đổi trạng thái nếu đơn đã hoàn thành hoặc đã hủy
+    if (targetOrder.status === 'Hoàn thành' || targetOrder.status === 'Đã hủy') {
+      Alert.alert(
+        'Không thể đổi trạng thái',
+        `Đơn hàng #OD-${orderId} đã ở trạng thái "${targetOrder.status}". Trạng thái này đã được khóa cố định và không thể thay đổi!`,
+      );
+      return;
+    }
+
+    // Ràng buộc quy trình: Chỉ đơn "Đang xử lý" mới được thay đổi trạng thái (hoặc "Đang giao" -> "Hoàn thành")
+    if (
+      targetOrder.status !== 'Đang xử lý' &&
+      !(targetOrder.status === 'Đang giao' && newStatus === 'Hoàn thành')
+    ) {
+      Alert.alert(
+        'Ràng buộc quy trình',
+        'Chỉ những đơn hàng ở trạng thái "Đang xử lý" mới được phép thay đổi trạng thái!',
+      );
+      return;
+    }
+
     try {
       await updateOrderStatus(orderId, newStatus);
       const updated = await fetchOrders();
@@ -523,6 +631,14 @@ export default function AdminDashboard() {
             <Text style={styles.statNumber}>{orders.length}</Text>
             <Text style={styles.statLabel}>Đơn hàng</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.statBox, activeTab === 'statistics' && styles.statBoxActive]}
+            onPress={() => setActiveTab('statistics')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.statNumber}>📊</Text>
+            <Text style={styles.statLabel}>Thống kê</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Quick Nav Button */}
@@ -602,6 +718,24 @@ export default function AdminDashboard() {
             ]}
           >
             📋 Đơn hàng ({orders.length})
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.tabBtn,
+            activeTab === 'statistics' && styles.tabBtnActive,
+          ]}
+          onPress={() => setActiveTab('statistics')}
+          activeOpacity={0.8}
+        >
+          <Text
+            style={[
+              styles.tabBtnText,
+              activeTab === 'statistics' && styles.tabBtnTextActive,
+            ]}
+          >
+            📊 Thống kê
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -958,23 +1092,67 @@ export default function AdminDashboard() {
 
                     {/* Action Buttons: Xử lý đơn hàng */}
                     <View style={styles.orderActionsRow}>
-                      {item.status === 'Đang xử lý' && (
-                        <TouchableOpacity
-                          style={[
-                            styles.orderActionBtn,
-                            styles.orderActionShip,
-                          ]}
-                          onPress={() =>
-                            handleUpdateOrderStatus(item.id, 'Đang giao')
-                          }
-                          activeOpacity={0.8}
-                        >
-                          <Text style={styles.orderActionShipText}>
-                            🚚 Giao hàng
+                      {/* Đơn hàng Hoàn thành hoặc Đã hủy: BỊ KHÓA, không cho đổi trạng thái */}
+                      {(item.status === 'Hoàn thành' || item.status === 'Đã hủy') && (
+                        <View style={styles.orderLockedBadge}>
+                          <Text style={styles.orderLockedBadgeText}>
+                            🔒 Đơn {item.status.toLowerCase()} (Khóa)
                           </Text>
-                        </TouchableOpacity>
+                        </View>
                       )}
 
+                      {/* Chỉ đơn 'Đang xử lý' mới được Giao hàng / Hủy đơn / Đổi trạng thái */}
+                      {item.status === 'Đang xử lý' && (
+                        <>
+                          <TouchableOpacity
+                            style={[
+                              styles.orderActionBtn,
+                              styles.orderActionShip,
+                            ]}
+                            onPress={() =>
+                              handleUpdateOrderStatus(item.id, 'Đang giao')
+                            }
+                            activeOpacity={0.8}
+                          >
+                            <Text style={styles.orderActionShipText}>
+                              🚚 Giao hàng
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[
+                              styles.orderActionBtn,
+                              styles.orderActionCancel,
+                            ]}
+                            onPress={() =>
+                              handleUpdateOrderStatus(item.id, 'Đã hủy')
+                            }
+                            activeOpacity={0.8}
+                          >
+                            <Text style={styles.orderActionCancelText}>
+                              ❌ Hủy đơn
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[
+                              styles.orderActionBtn,
+                              styles.orderActionChange,
+                            ]}
+                            onPress={() => {
+                              setSelectedOrderForStatus(item);
+                              setStatusModalVisible(true);
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={styles.orderActionChangeText}>
+                              ⚙️ Đổi trạng thái
+                            </Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
+
+                      {/* Đơn 'Đang giao': Admin bấm Hoàn tất khi giao thành công */}
                       {item.status === 'Đang giao' && (
                         <TouchableOpacity
                           style={[
@@ -992,40 +1170,7 @@ export default function AdminDashboard() {
                         </TouchableOpacity>
                       )}
 
-                      {item.status !== 'Hoàn thành' &&
-                        item.status !== 'Đã hủy' && (
-                          <TouchableOpacity
-                            style={[
-                              styles.orderActionBtn,
-                              styles.orderActionCancel,
-                            ]}
-                            onPress={() =>
-                              handleUpdateOrderStatus(item.id, 'Đã hủy')
-                            }
-                            activeOpacity={0.8}
-                          >
-                            <Text style={styles.orderActionCancelText}>
-                              ❌ Hủy đơn
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-
-                      <TouchableOpacity
-                        style={[
-                          styles.orderActionBtn,
-                          styles.orderActionChange,
-                        ]}
-                        onPress={() => {
-                          setSelectedOrderForStatus(item);
-                          setStatusModalVisible(true);
-                        }}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.orderActionChangeText}>
-                          ⚙️ Đổi trạng thái
-                        </Text>
-                      </TouchableOpacity>
-
+                      {/* Nút Xóa đơn hàng luôn khả dụng cho admin */}
                       <TouchableOpacity
                         style={[
                           styles.orderActionBtn,
@@ -1048,6 +1193,229 @@ export default function AdminDashboard() {
         </View>
       )}
 
+      {/* ================= STATISTICS TAB ================= */}
+      {activeTab === 'statistics' && (
+        <ScrollView
+          style={styles.tabContent}
+          contentContainerStyle={styles.statsScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>
+              📊 Thống kê hoạt động & Doanh thu
+            </Text>
+            <TouchableOpacity
+              style={styles.refreshStatsBtn}
+              onPress={loadData}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.refreshStatsText}>🔄 Làm mới</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* 1. Hero Revenue Card */}
+          <View style={styles.revenueHeroCard}>
+            <Text style={styles.revenueHeroLabel}>💰 TỔNG DOANH THU THỰC TẾ</Text>
+            <Text style={styles.revenueHeroAmount}>
+              {totalCompletedRevenue.toLocaleString('vi-VN')} đ
+            </Text>
+            <Text style={styles.revenueHeroSub}>
+              Được ghi nhận từ {completedOrdersList.length} đơn hàng đã hoàn tất thành công
+            </Text>
+
+            <View style={styles.revenueDivider} />
+
+            <View style={styles.revenueSubRow}>
+              <View style={styles.revenueSubItem}>
+                <Text style={styles.revenueSubLabel}>
+                  ⏳ Đang chờ thu (Đang xử lý/giao):
+                </Text>
+                <Text style={styles.revenueSubValuePending}>
+                  +{pendingRevenue.toLocaleString('vi-VN')} đ
+                </Text>
+              </View>
+              <View style={styles.revenueSubItem}>
+                <Text style={styles.revenueSubLabel}>
+                  ❌ Thất thoát do hủy đơn:
+                </Text>
+                <Text style={styles.revenueSubValueLoss}>
+                  -{cancelledRevenue.toLocaleString('vi-VN')} đ
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* 2. Grid Cards: 4 Core Metrics */}
+          <Text style={styles.statsSectionHeading}>
+            📦 Phân tích trạng thái đơn hàng
+          </Text>
+          <View style={styles.statsGrid}>
+            {/* Total Orders */}
+            <View style={[styles.statsGridCard, styles.cardTotalBorder]}>
+              <View style={styles.statsIconBgTotal}>
+                <Text style={styles.statsIcon}>📦</Text>
+              </View>
+              <Text style={styles.statsCardNum}>{totalOrdersCount}</Text>
+              <Text style={styles.statsCardLabel}>Tổng số đơn hàng</Text>
+              <Text style={styles.statsCardSub}>100% đơn phát sinh</Text>
+            </View>
+
+            {/* Completed Orders */}
+            <View style={[styles.statsGridCard, styles.cardCompletedBorder]}>
+              <View style={styles.statsIconBgCompleted}>
+                <Text style={styles.statsIcon}>✅</Text>
+              </View>
+              <Text style={[styles.statsCardNum, styles.textCompleted]}>
+                {completedOrdersList.length}
+              </Text>
+              <Text style={styles.statsCardLabel}>Đơn đã hoàn thành</Text>
+              <Text style={styles.statsCardSub}>
+                {completedPercent}% tổng đơn
+              </Text>
+            </View>
+
+            {/* Cancelled Orders */}
+            <View style={[styles.statsGridCard, styles.cardCancelledBorder]}>
+              <View style={styles.statsIconBgCancelled}>
+                <Text style={styles.statsIcon}>❌</Text>
+              </View>
+              <Text style={[styles.statsCardNum, styles.textCancelled]}>
+                {cancelledOrdersList.length}
+              </Text>
+              <Text style={styles.statsCardLabel}>Đơn đã bị hủy</Text>
+              <Text style={styles.statsCardSub}>
+                {cancelledPercent}% tổng đơn
+              </Text>
+            </View>
+
+            {/* Processing & Shipping */}
+            <View style={[styles.statsGridCard, styles.cardProcessingBorder]}>
+              <View style={styles.statsIconBgProcessing}>
+                <Text style={styles.statsIcon}>⏳</Text>
+              </View>
+              <Text style={[styles.statsCardNum, styles.textProcessing]}>
+                {processingOrdersList.length + shippingOrdersList.length}
+              </Text>
+              <Text style={styles.statsCardLabel}>Đang xử lý / giao</Text>
+              <Text style={styles.statsCardSub}>
+                {processingPercent + shippingPercent}% tổng đơn
+              </Text>
+            </View>
+          </View>
+
+          {/* 3. Visual Progress Bar */}
+          <View style={styles.chartCard}>
+            <Text style={styles.chartTitle}>
+              📊 Tỷ lệ phân bổ trạng thái đơn hàng
+            </Text>
+            {totalOrdersCount === 0 ? (
+              <Text style={styles.chartEmptyText}>Chưa có dữ liệu đơn hàng</Text>
+            ) : (
+              <>
+                <View style={styles.progressBarWrapper}>
+                  {completedPercent > 0 && (
+                    <View
+                      style={getSegmentStyle(
+                        completedPercent,
+                        styles.segmentCompleted,
+                      )}
+                    />
+                  )}
+                  {shippingPercent > 0 && (
+                    <View
+                      style={getSegmentStyle(
+                        shippingPercent,
+                        styles.segmentShipping,
+                      )}
+                    />
+                  )}
+                  {processingPercent > 0 && (
+                    <View
+                      style={getSegmentStyle(
+                        processingPercent,
+                        styles.segmentProcessing,
+                      )}
+                    />
+                  )}
+                  {cancelledPercent > 0 && (
+                    <View
+                      style={getSegmentStyle(
+                        cancelledPercent,
+                        styles.segmentCancelled,
+                      )}
+                    />
+                  )}
+                </View>
+
+                {/* Legend Row */}
+                <View style={styles.legendContainer}>
+                  <View style={styles.legendItem}>
+                    <View
+                      style={[styles.legendDot, styles.dotCompleted]}
+                    />
+                    <Text style={styles.legendText}>
+                      Hoàn thành: {completedOrdersList.length} ({completedPercent}%)
+                    </Text>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View
+                      style={[styles.legendDot, styles.dotShipping]}
+                    />
+                    <Text style={styles.legendText}>
+                      Đang giao: {shippingOrdersList.length} ({shippingPercent}%)
+                    </Text>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View
+                      style={[styles.legendDot, styles.dotProcessing]}
+                    />
+                    <Text style={styles.legendText}>
+                      Đang xử lý: {processingOrdersList.length} ({processingPercent}%)
+                    </Text>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View
+                      style={[styles.legendDot, styles.dotCancelled]}
+                    />
+                    <Text style={styles.legendText}>
+                      Đã hủy: {cancelledOrdersList.length} ({cancelledPercent}%)
+                    </Text>
+                  </View>
+                </View>
+              </>
+            )}
+          </View>
+
+          {/* 4. Business Performance Metrics */}
+          <View style={styles.performanceCard}>
+            <Text style={styles.performanceTitle}>💡 Chỉ số kinh doanh nổi bật</Text>
+            <View style={styles.performanceRow}>
+              <Text style={styles.perfLabel}>Giá trị trung bình đơn (AOV):</Text>
+              <Text style={styles.perfValue}>
+                {avgOrderValue.toLocaleString('vi-VN')} đ
+              </Text>
+            </View>
+            <View style={styles.performanceRow}>
+              <Text style={styles.perfLabel}>Số sản phẩm đã bán ra:</Text>
+              <Text style={styles.perfValue}>{totalProductsSold} món</Text>
+            </View>
+            <View style={styles.performanceRow}>
+              <Text style={styles.perfLabel}>Tỷ lệ hoàn thành đơn thành công:</Text>
+              <Text style={[styles.perfValue, styles.perfValueCompleted]}>
+                {completedPercent}%
+              </Text>
+            </View>
+            <View style={[styles.performanceRow, styles.performanceRowLast]}>
+              <Text style={styles.perfLabel}>Tỷ lệ hủy đơn hàng:</Text>
+              <Text style={[styles.perfValue, styles.perfValueCancelled]}>
+                {cancelledPercent}%
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      )}
+
       {/* ================= MODAL CHANGE ORDER STATUS ================= */}
       <Modal
         visible={statusModalVisible}
@@ -1068,42 +1436,55 @@ export default function AdminDashboard() {
               Trạng thái hiện tại: {selectedOrderForStatus?.status}
             </Text>
 
-            <View style={styles.statusOptionsContainer}>
-              {(
-                ['Đang xử lý', 'Đang giao', 'Hoàn thành', 'Đã hủy'] as const
-              ).map((st) => {
-                const isCurrent = selectedOrderForStatus?.status === st;
-                const b = getOrderStatusBadge(st);
-                return (
-                  <TouchableOpacity
-                    key={st}
-                    style={[
-                      styles.statusOptionBtn,
-                      b.badgeStyle,
-                      isCurrent && styles.statusOptionCurrent,
-                    ]}
-                    onPress={() => {
-                      if (selectedOrderForStatus) {
-                        handleUpdateOrderStatus(selectedOrderForStatus.id, st);
-                        setStatusModalVisible(false);
-                      }
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      style={[styles.statusOptionText, b.textStyle]}
+            {/* Nếu đơn đã hoàn thành hoặc đã hủy -> Hiển thị thông báo khóa */}
+            {selectedOrderForStatus?.status === 'Hoàn thành' ||
+            selectedOrderForStatus?.status === 'Đã hủy' ? (
+              <View style={styles.lockedModalNotice}>
+                <Text style={styles.lockedModalNoticeText}>
+                  🔒 Đơn hàng này đã ở trạng thái "
+                  {selectedOrderForStatus?.status}" (trạng thái kết thúc).
+                  Theo quy định, đơn hàng đã bị khóa cố định và không thể thay
+                  đổi trạng thái!
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.statusOptionsContainer}>
+                {(
+                  ['Đang xử lý', 'Đang giao', 'Hoàn thành', 'Đã hủy'] as const
+                ).map((st) => {
+                  const isCurrent = selectedOrderForStatus?.status === st;
+                  const b = getOrderStatusBadge(st);
+                  return (
+                    <TouchableOpacity
+                      key={st}
+                      style={[
+                        styles.statusOptionBtn,
+                        b.badgeStyle,
+                        isCurrent && styles.statusOptionCurrent,
+                      ]}
+                      onPress={() => {
+                        if (selectedOrderForStatus) {
+                          handleUpdateOrderStatus(selectedOrderForStatus.id, st);
+                          setStatusModalVisible(false);
+                        }
+                      }}
+                      activeOpacity={0.8}
                     >
-                      {st === 'Đang xử lý' && '⏳ '}
-                      {st === 'Đang giao' && '🚚 '}
-                      {st === 'Hoàn thành' && '✅ '}
-                      {st === 'Đã hủy' && '❌ '}
-                      {st}
-                      {isCurrent ? ' (Hiện tại)' : ''}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                      <Text
+                        style={[styles.statusOptionText, b.textStyle]}
+                      >
+                        {st === 'Đang xử lý' && '⏳ '}
+                        {st === 'Đang giao' && '🚚 '}
+                        {st === 'Hoàn thành' && '✅ '}
+                        {st === 'Đã hủy' && '❌ '}
+                        {st}
+                        {isCurrent ? ' (Hiện tại)' : ''}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
 
             <TouchableOpacity
               style={styles.modalCancelBtn}
@@ -1708,38 +2089,35 @@ const styles = StyleSheet.create({
   orderFilterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    marginBottom: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+    marginBottom: 10,
   },
   orderFilterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 20,
     backgroundColor: '#fff',
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
     marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 38,
   },
   orderFilterChipActive: {
     backgroundColor: '#d32f2f',
     borderColor: '#d32f2f',
     elevation: 2,
     shadowColor: '#d32f2f',
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
   },
   orderFilterText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#475569',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-    lineHeight: 18,
+    textAlign: 'center',
   },
   orderFilterTextActive: {
     color: '#fff',
@@ -1805,8 +2183,6 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 11,
     fontWeight: 'bold',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
   },
   orderCustomerBox: {
     paddingVertical: 8,
@@ -1894,10 +2270,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
-    minHeight: 34,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 7,
   },
   orderActionShip: {
     backgroundColor: '#1976d2',
@@ -1906,8 +2281,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
   },
   orderActionComplete: {
     backgroundColor: '#2e7d32',
@@ -1916,8 +2289,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
   },
   orderActionCancel: {
     backgroundColor: '#d32f2f',
@@ -1926,8 +2297,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
   },
   orderActionChange: {
     backgroundColor: '#57606f',
@@ -1936,8 +2305,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
   },
   orderActionDelete: {
     backgroundColor: '#fff',
@@ -1948,8 +2315,19 @@ const styles = StyleSheet.create({
     color: '#d63031',
     fontSize: 12,
     fontWeight: 'bold',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
+  },
+  orderLockedBadge: {
+    backgroundColor: '#f1f2f6',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: '#dfe4ea',
+  },
+  orderLockedBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#747d8c',
   },
   statusModalBox: {
     width: '88%',
@@ -1968,6 +2346,20 @@ const styles = StyleSheet.create({
     color: '#57606f',
     marginBottom: 4,
     lineHeight: 18,
+  },
+  lockedModalNotice: {
+    backgroundColor: '#fff3cd',
+    borderColor: '#ffeeba',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 14,
+  },
+  lockedModalNoticeText: {
+    color: '#856404',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
   },
   statusOptionsContainer: {
     marginVertical: 14,
@@ -1988,8 +2380,6 @@ const styles = StyleSheet.create({
   statusOptionText: {
     fontSize: 13,
     fontWeight: '600',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
   },
   statBoxActive: {
     borderColor: '#ffdd59',
@@ -2023,5 +2413,291 @@ const styles = StyleSheet.create({
   },
   statusCancelledText: {
     color: '#c62828',
+  },
+
+  // ==========================================
+  // STATISTICS STYLES
+  // ==========================================
+  statsScrollContent: {
+    paddingBottom: 32,
+  },
+  refreshStatsBtn: {
+    backgroundColor: '#374151',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  refreshStatsText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  revenueHeroCard: {
+    backgroundColor: '#111827',
+    borderRadius: 14,
+    padding: 18,
+    marginBottom: 14,
+    elevation: 3,
+    borderLeftWidth: 5,
+    borderLeftColor: '#ffdd59',
+  },
+  revenueHeroLabel: {
+    color: '#ffdd59',
+    fontSize: 11,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  revenueHeroAmount: {
+    color: '#fff',
+    fontSize: 26,
+    fontWeight: '900',
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  revenueHeroSub: {
+    color: '#9ca3af',
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  revenueDivider: {
+    height: 1,
+    backgroundColor: '#374151',
+    marginVertical: 12,
+  },
+  revenueSubRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  revenueSubItem: {
+    flex: 1,
+  },
+  revenueSubLabel: {
+    color: '#9ca3af',
+    fontSize: 10,
+    marginBottom: 2,
+  },
+  revenueSubValuePending: {
+    color: '#38bdf8',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  revenueSubValueLoss: {
+    color: '#f87171',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  statsSectionHeading: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14,
+  },
+  statsGridCard: {
+    width: (SCREEN_WIDTH - 40) / 2,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1.5,
+    elevation: 1,
+  },
+  cardTotalBorder: {
+    borderColor: '#e5e7eb',
+  },
+  cardCompletedBorder: {
+    borderColor: '#bbf7d0',
+  },
+  cardCancelledBorder: {
+    borderColor: '#fecaca',
+  },
+  cardProcessingBorder: {
+    borderColor: '#fed7aa',
+  },
+  statsIconBgTotal: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  statsIconBgCompleted: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#dcfce7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  statsIconBgCancelled: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#fee2e2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  statsIconBgProcessing: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#ffedd5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  statsIcon: {
+    fontSize: 16,
+  },
+  statsCardNum: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  textCompleted: {
+    color: '#16a34a',
+  },
+  textCancelled: {
+    color: '#dc2626',
+  },
+  textProcessing: {
+    color: '#ea580c',
+  },
+  statsCardLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4b5563',
+    marginTop: 2,
+  },
+  statsCardSub: {
+    fontSize: 10,
+    color: '#9ca3af',
+    marginTop: 2,
+  },
+  chartCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    elevation: 1,
+  },
+  chartTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 10,
+  },
+  chartEmptyText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    textAlign: 'center',
+    paddingVertical: 12,
+  },
+  progressBarWrapper: {
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#e5e7eb',
+    flexDirection: 'row',
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  progressBarSegment: {
+    height: '100%',
+  },
+  legendContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+    marginBottom: 4,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 6,
+  },
+  legendText: {
+    fontSize: 11,
+    color: '#4b5563',
+  },
+  performanceCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    elevation: 1,
+  },
+  performanceTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 10,
+  },
+  performanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  perfLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  perfValue: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  segmentCompleted: {
+    backgroundColor: '#2e7d32',
+  },
+  segmentShipping: {
+    backgroundColor: '#1976d2',
+  },
+  segmentProcessing: {
+    backgroundColor: '#f57f17',
+  },
+  segmentCancelled: {
+    backgroundColor: '#d32f2f',
+  },
+  dotCompleted: {
+    backgroundColor: '#2e7d32',
+  },
+  dotShipping: {
+    backgroundColor: '#1976d2',
+  },
+  dotProcessing: {
+    backgroundColor: '#f57f17',
+  },
+  dotCancelled: {
+    backgroundColor: '#d32f2f',
+  },
+  perfValueCompleted: {
+    color: '#2e7d32',
+  },
+  perfValueCancelled: {
+    color: '#d32f2f',
+  },
+  performanceRowLast: {
+    borderBottomWidth: 0,
   },
 });
